@@ -1,0 +1,14 @@
+{
+  "name": "emergent-complexity",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "start": "node scripts/serve.mjs",
+    "test": "node --test",
+    "experiment": "node scripts/experiments.mjs",
+    "check": "node scripts/check.mjs",
+    "report": "node scripts/report.mjs"
+  }
+}
