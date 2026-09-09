@@ -26,7 +26,9 @@ def read(name):
     return json.loads((data / f'{name}.json').read_text(encoding='utf-8'))
 
 def save(figure, name):
-    figure.savefig(output / f'{name}.svg', metadata={'Date': None})
+    svg = output / f'{name}.svg'
+    figure.savefig(svg, metadata={'Date': None})
+    svg.write_text('\n'.join(line.rstrip() for line in svg.read_text(encoding='utf-8').splitlines()) + '\n', encoding='utf-8', newline='\n')
     figure.savefig(output / f'{name}.png', dpi=150)
     plt.close(figure)
 
