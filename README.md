@@ -49,7 +49,7 @@ python scripts/age-figure.py
 
 This regenerates the SVG and PNG figures in `dist/figures/`. Regenerate figures and the report after changing the experimental data. Precomputed artifacts are committed, so neither Python nor a build tool is needed to use the website.
 
-The two age-color demonstrations are separate from the original 1,990 runs. They start Life without Death and Coral from the same centered patch and record their population, occupied region, and final cell ages in `dist/data/age-demo.json`. The report includes the comparison and timestamped discussion of [Cary Huang's The Conway Multiverse](https://www.youtube.com/watch?v=QK_KZv-YyOc).
+The two age-color demonstrations are separate from the original 1,990 runs. They start Life without Death and Coral from the same centered patch and record their population, occupied region, and final cell ages in `dist/data/age-demo.json`. The report uses these measurements to compare how the two runs spread and explain what the colors can and cannot tell us about growth speed. Background references are listed in the report.
 
 ## How the code fits together
 
@@ -82,6 +82,6 @@ The optional WebMCP interface is feature-detected through `document.modelContext
 
 ## Assignment status and attribution
 
-The implementation covers Tasks 1-3, Option B of Task 4, and the experimental/report artifact for Task 5. The video and personal-reflection portions still require Bob's own participation and review. No claim is made that Bob watched the video or independently authored this work. The report discloses the AI implementation, experimental design, execution, and drafting.
+The implementation covers Tasks 1-3, Option B of Task 4, and the experimental/report artifact for Task 5. Bob still needs to review the introductory material and complete his personal reflections. The report credits his proposal to add age coloring and discloses the AI implementation, experimental design, execution, and drafting.
 
 The HighLife replicator seed comes from [David Eppstein's pattern notation page](https://ics.uci.edu/~eppstein/ca/lifelike.html). The assignment PDF and slide deck were used as references and are not redistributed in this repository.

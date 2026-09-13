@@ -189,7 +189,9 @@ Even a little noise led to large differences from the control for the selected r
 
 ## What the age colors reveal
 
-The age view was inspired by [Cary Huang's The Conway Multiverse, at 2:09](https://www.youtube.com/watch?v=QK_KZv-YyOc&t=129s). In this implementation, a newly living cell has age 1 and gains one for each consecutive step it stays alive. Dead cells have age 0. With noise enabled, age follows the state after the flips. The color key marks ages 1, 4, 16, 32, 64, and 128; older cells remain blue, even though their recorded ages continue increasing. Initial living cells also start at 1, so one that survives through generation 128 has age 129.
+I wanted a way to compare how different worlds spread, so I proposed adding color based on cell age. This makes it easier to see where cells have just appeared and where they have stayed alive for a long time.
+
+A newly living cell starts at age 1 and gains one for each step it stays alive. If it dies, its age returns to 0. With noise enabled, age follows the state after the random flips. The colors move from white through orange, yellow, green, and cyan to blue, with marks at ages 1, 4, 16, 32, 64, and 128. Cells older than 128 stay blue, but their recorded ages keep increasing. The initial living cells also start at age 1, so a cell that survives through generation 128 has age 129.
 
 Two extra demonstrations compare Life without Death, B3/S012345678, with Coral, B3/S45678. Both use the same 120 living cells inside a 16 × 16 starting patch, generated at 50% density with seed growth-demo. Each runs for 128 steps on a 128 × 128 grid with empty edges and no noise. These are illustrative runs, separate from the original study. Neither reached an edge during the run.
 
@@ -202,19 +204,19 @@ The occupied region is the smallest rectangle containing every living cell, incl
 
 ![Life without Death and Coral after 128 steps from the same starting patch, using the same age colors and grid scale](./dist/figures/age-growth.svg)
 
-At [20:40 in the video](https://www.youtube.com/watch?v=QK_KZv-YyOc&t=1240s), Huang uses the width of these color bands to estimate relative growth speed. The reasoning is useful: if cells remain alive after a growth front passes, the age difference between two locations tells us how long the front took to travel between them. For example, 24 cells of distance over 120 steps would mean an average of 0.2 cells per step along that direction.
+The colors add something that the final population alone misses: they show where the recent growth happened. In the Life without Death run, the younger bands extend well beyond the starting patch. In Coral, they stay much closer to it. The recorded width and height support the same observation: by step 128, Life without Death had spread much farther from this particular start.
 
-That estimate needs care when cells die and return, since their ages restart. Noise, changing growth direction, and the blue color limit also hide parts of the history. A wider gradient can suggest faster growth, but the two demonstrations above do not establish a general speed ratio between these rules. A stronger comparison would track the same part of each growing boundary over time, repeat the test with new seeds, and stop measurements before activity reaches a grid edge.
+If cells stay alive after an area fills, the age difference between two locations tells us how many steps passed between their births. Comparing that time with the distance between them can help estimate how quickly growth moved along a particular direction. This works more directly for Life without Death, where cells cannot die when noise is off. In Coral, a young cell might instead be one that died and returned, so its color does not necessarily mark newly reached ground.
 
-## Further ideas from the video
+The figure suggests a difference in growth speed, but it does not establish a general speed ratio. Each rule has only one starting patch here, growth can change direction, and ages above 128 share the same color. A stronger comparison would track the advancing edge over time, repeat the same paired test with several seeds, and stop measuring before either pattern touches the grid boundary.
 
-Small changes to a rule can be explained by looking at the affected cells. At [5:53](https://www.youtube.com/watch?v=QK_KZv-YyOc&t=353s), the video changes Life to B3/S234, which allows survival with four neighbors and supports corridor-like structures. At [7:28](https://www.youtube.com/watch?v=QK_KZv-YyOc&t=448s), it instead adds birth with four neighbors, giving B34/S23 and a much more restless example. This suggests a useful follow-up to the selected rule: remove one survival condition at a time while keeping the starting grid fixed. Removing survival with zero neighbors would directly test the proposed role of isolated cells in its sparse, settled runs.
+## Questions raised by these experiments
 
-The video's large rule map also samples a different set of worlds. At [14:43](https://www.youtube.com/watch?v=QK_KZv-YyOc&t=883s), Huang explains that it includes only uninterrupted ranges of birth and survival counts. There are 45 nonempty ranges within 0 through 8, plus the empty choice, giving 46 × 46 = 2,116 rules. This project's 100-rule sample instead draws from all 262,144 possibilities. HighLife's birth counts, 3 and 6, are not consecutive. The selected rule's survival counts skip 7. Both therefore fall outside that map. The proportion of active worlds in this survey should not be compared directly with the video's map as if both used the same sampling method.
+The density experiments leave a specific question about B456/S01234568: why do sparse starts settle while denser ones keep changing? One condition worth testing is survival with zero neighbors, which lets an isolated cell remain alive. A next experiment could remove just that condition and replay the same starting grids. Comparing the outcomes would help test whether those isolated survivors explain the settled runs. This comparison has not yet been run.
 
-Growth and constant change are also different questions. In Life without Death, all living cells survive when noise is off. That means old cells can stay fixed while new cells extend the boundary. It also rules out cycles longer than one step: returning to an earlier arrangement would require removing a cell. On a finite grid this process must eventually stop growing. Coral allows deaths as well as births; [Eppstein describes its slow growth and small oscillators](https://ics.uci.edu/~eppstein/ca/wanted.html). Population, the distance reached by a growing boundary, and cell turnover can therefore tell different stories about the same run.
+The age comparison also shows why growth and activity need separate measurements. In Life without Death, every changed cell is a birth when noise is off. An old center can stay fixed while new cells appear farther out. In Coral, the number of changed cells can include both births and deaths. Two runs with similar activity could therefore differ in how far they spread or how many cells they retain. Recording births and deaths separately would make that distinction easier to investigate.
 
-These are connections to existing work and possible follow-up questions. They do not establish a newly discovered rule, a proof of chaos, or a new self-replicating pattern.
+Life without Death has another useful property: without noise, it cannot return to an earlier arrangement after a birth, because that would require a cell to disappear. On a finite grid, it must eventually stop growing and settle. Its large expanding pattern at step 128 is therefore a stage in the run, rather than evidence that this finite world can grow forever. This is a consequence of the rule; the demonstration was not run until it settled.
 
 ## How to repeat the experiments
 
@@ -255,17 +257,16 @@ Another direction would be to count how many recognizable replicator copies surv
 
 ## AI use and personal reflection
 
-Codex wrote the simulator, chose Option B, planned and ran the experiments, wrote the tests, generated the figures, and drafted this report. Bob still needs to review the choices, understand the code, and decide which conclusions he can support before submitting it.
+Bob proposed adding age coloring to help compare growth in this project. Codex wrote the simulator, chose Option B, planned and ran the experiments, wrote the tests, generated the figures, and drafted this report. Bob still needs to review the choices, understand the code, and decide which conclusions he can support before submitting it.
 
-The assignment also asks for a response to the introductory video, what was interesting about the project, and what to learn next. Those personal reflections have not been added to this draft. The assigned video's transcript was unavailable when the project was built. For this update, Codex read the transcript of The Conway Multiverse and inspected its age-color comparison. The new discussion is based on that source and the added demonstrations; it does not stand in for Bob's personal response to the assigned video. The proposed questions above are starting points for Bob to consider while exploring the lab.
+The assignment also asks for a response to the introductory material, what was interesting about the project, and what to learn next. Those personal reflections have not been added to this draft. The proposed questions above are starting points for Bob to consider while exploring the lab.
 
 ## Sources and data
 
 - George Tsoukalas, Emergent Complexity: Initial Assignment, supplied PDF dated September 2026.
 - [Introductory slides supplied by George](https://docs.google.com/presentation/d/1gsOaxcF1HxZjXxVJ6rrsMIikBtcoJwq_3MrEeSp8XI4/edit).
-- [Emergent Garden, Artificial Life, assigned introductory video](https://www.youtube.com/watch?v=2g-CrQfYNtE).
+- [Emergent Garden, Artificial Life](https://www.youtube.com/watch?v=2g-CrQfYNtE), assigned introductory material.
 - [David Eppstein, Lifelike Rules and Pattern Notation](https://ics.uci.edu/~eppstein/ca/lifelike.html), source of the rule notation and HighLife replicator seed.
-- [Cary Huang (carykh), The Conway Multiverse](https://www.youtube.com/watch?v=QK_KZv-YyOc), June 24, 2026. Transcript read and age-color comparison inspected for this update.
-- [David Eppstein, Most Wanted](https://ics.uci.edu/~eppstein/ca/wanted.html), observations about Coral and other rules. Its search history does not establish which patterns remain undiscovered today.
+- [Cary Huang (carykh), The Conway Multiverse](https://www.youtube.com/watch?v=QK_KZv-YyOc), inspiration for the age-color display and the choice to compare Life without Death with Coral.
 - [Age-color demonstrations and measurements (JSON)](./dist/data/age-demo.json).
 - [Raw run summaries (CSV)](./dist/data/runs.csv), [pattern-noise trials (CSV)](./dist/data/pattern-noise.csv), [full survey (JSON)](./dist/data/survey.json), [experiment manifest (JSON)](./dist/data/manifest.json).
