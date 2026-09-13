@@ -37,7 +37,7 @@ npm run report
 npm run check
 ```
 
-The recorded study has **1,990 runs**: 600 for the random-rule survey, 50 for Life/HighLife density comparisons, 56 for the selected rule, 960 for pattern noise, and 324 for noise in random worlds. The pattern catalog is additional. Experiments use the same engine as the website and write deterministic JSON/CSV artifacts to `dist/data/`. Their seeds and settings are in the data and report. Runtime depends on the computer; the simulation runs synchronously in the Node script, and in a worker when launched from the experiments page.
+The project includes **1,992 recorded simulation runs**: 600 for the random-rule survey, 50 for Life/HighLife density comparisons, 56 for the selected rule, 960 for pattern noise, 324 for noise in random worlds, and 2 for the age-color growth comparison. The examples in the pattern catalog are not included in this total. Experiments use the same engine as the website and write deterministic JSON/CSV artifacts to `dist/data/`. Their seeds and settings are in the data and report. Runtime depends on the computer; the simulation runs synchronously in the Node script, and in a worker when launched from the experiments page.
 
 For the scientific figures only, use Python 3.10 or later with Matplotlib and NumPy:
 
@@ -49,7 +49,7 @@ python scripts/age-figure.py
 
 This regenerates the SVG and PNG figures in `dist/figures/`. Regenerate figures and the report after changing the experimental data. Precomputed artifacts are committed, so neither Python nor a build tool is needed to use the website.
 
-The two age-color demonstrations are separate from the original 1,990 runs. They start Life without Death and Coral from the same centered patch and record their population, occupied region, and final cell ages in `dist/data/age-demo.json`. The report uses these measurements to compare how the two runs spread and explain what the colors can and cannot tell us about growth speed. Background references are listed in the report.
+The two age-color runs are included in the total of 1,992. They start Life without Death and Coral from the same centered patch and record their population, occupied region, and final cell ages in `dist/data/age-demo.json`. The report uses these measurements to compare how the two runs spread and explain what the colors can and cannot tell us about growth speed. Background references are listed in the report.
 
 ## How the code fits together
 

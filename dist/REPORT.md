@@ -6,7 +6,7 @@ This is an AI-assisted draft for George Tsoukalas's initial assignment. It expla
 
 This project asks how simple rules can produce different patterns across a grid. How much changes when one rule changes? Does the starting number of living cells matter more than where those cells are placed? What happens to a familiar pattern when random disturbances are added?
 
-The simulator uses a two-dimensional grid where each cell is alive or dead. It covers Conway's Game of Life, other rules of the same kind, and Option B of the assignment: adding noise. The original study contains 1,990 recorded runs: 600 testing random rules, 50 comparing Life and HighLife, 56 taking a closer look at one rule, 960 testing how patterns hold up under noise, and 324 adding noise to random starting grids. The examples of known patterns and the two added age-color demonstrations are separate from this total.
+The simulator uses a two-dimensional grid where each cell is alive or dead. It covers Conway's Game of Life, other rules of the same kind, and Option B of the assignment: adding noise. This project includes 1,992 recorded simulation runs: 600 testing random rules, 50 comparing Life and HighLife, 56 taking a closer look at one rule, 960 testing how patterns hold up under noise, 324 adding noise to random starting grids, and 2 comparing growth using age colors. The examples in the known-pattern catalog are not included in this total.
 
 The website lets you draw cells, change the rules, and watch what happens. It also has results for all 100 sampled rules, graphs of each run, replay links, and downloadable data. The simulator runs entirely in the browser.
 
@@ -193,7 +193,7 @@ I wanted a way to compare how different worlds spread, so I proposed adding colo
 
 A newly living cell starts at age 1 and gains one for each step it stays alive. If it dies, its age returns to 0. With noise enabled, age follows the state after the random flips. The colors move from white through orange, yellow, green, and cyan to blue, with marks at ages 1, 4, 16, 32, 64, and 128. Cells older than 128 stay blue, but their recorded ages keep increasing. The initial living cells also start at age 1, so a cell that survives through generation 128 has age 129.
 
-Two extra demonstrations compare Life without Death, B3/S012345678, with Coral, B3/S45678. Both use the same 120 living cells inside a 16 × 16 starting patch, generated at 50% density with seed growth-demo. Each runs for 128 steps on a 128 × 128 grid with empty edges and no noise. These are illustrative runs, separate from the original study. Neither reached an edge during the run.
+The two age-color runs compare Life without Death, B3/S012345678, with Coral, B3/S45678. Both use the same 120 living cells inside a 16 × 16 starting patch, generated at 50% density with seed growth-demo. Each runs for 128 steps on a 128 × 128 grid with empty edges and no noise. These two illustrative runs are included in the project total. Neither reached an edge during the run.
 
 | Rule | Living cells after 128 steps | Width × height of occupied region | Reached an edge? |
 | --- | --- | --- | --- |
@@ -231,7 +231,7 @@ npm run report
 npm run check
 ```
 
-The first command starts the website at http://127.0.0.1:4173. Leave that running and use another terminal for the remaining commands. The test command checks the calculations. The experiment command repeats the original studies and saves their measurements in dist/data. The age-demo command repeats the two added demonstrations. The report command rebuilds this report from those measurements, and the check command looks for script errors and broken local links.
+The first command starts the website at http://127.0.0.1:4173. Leave that running and use another terminal for the remaining commands. The test command checks the calculations. The experiment command repeats the rule, density, and noise studies and saves their measurements in dist/data. The age-demo command repeats the two age-color comparisons. The report command rebuilds this report from those measurements, and the check command looks for script errors and broken local links.
 
 The figures are already included with the website. To regenerate them, install the Python packages listed in requirements-report.txt and run python scripts/figures.py for the original figures and python scripts/age-figure.py for the added age comparison. These use Matplotlib and NumPy to create SVG and PNG images.
 
