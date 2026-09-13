@@ -148,16 +148,24 @@ Each result was compared with a run of the same pattern without noise. That refe
 
 To check whether a pattern stayed intact, the code compared its living cells and their immediate neighbors with the reference at every step. The states had to agree at every checked location. Changes far away in the background were ignored.
 
-The results use two checks. Intact throughout means the pattern matched the reference on all 96 steps. Final match means it matched at step 96, even if it had been disturbed earlier. These are strict checks: a recognizable pattern can fail if it shifts position or falls one step behind the reference.
+The table shows two checks. Intact through 96 steps means the pattern matched the reference on every step. Matches at step 96 counts all runs that matched at the end, including those that differed earlier. These are strict checks: a recognizable pattern can fail if it shifts position or falls one step behind the reference.
 
-| Chance of a flip per cell per step | Block intact | Blinker intact | Glider intact | Replicator intact |
-| --- | --- | --- | --- | --- |
-| 0.00% | 40/40 | 40/40 | 40/40 | 40/40 |
-| 0.01% | 33/40 | 34/40 | 28/40 | 3/40 |
-| 0.05% | 9/40 | 13/40 | 12/40 | 0/40 |
-| 0.10% | 3/40 | 6/40 | 4/40 | 0/40 |
-| 0.50% | 0/40 | 0/40 | 0/40 | 0/40 |
-| 1.00% | 0/40 | 0/40 | 0/40 | 0/40 |
+| Flip chance per cell per step | Check | Block | Blinker | Glider | Replicator |
+| --- | --- | --- | --- | --- | --- |
+| 0.00% | Intact through 96 steps | 40/40 | 40/40 | 40/40 | 40/40 |
+| 0.00% | Matches at step 96 | 40/40 | 40/40 | 40/40 | 40/40 |
+| 0.01% | Intact through 96 steps | 33/40 | 34/40 | 28/40 | 3/40 |
+| 0.01% | Matches at step 96 | 34/40 | 34/40 | 28/40 | 7/40 |
+| 0.05% | Intact through 96 steps | 9/40 | 13/40 | 12/40 | 0/40 |
+| 0.05% | Matches at step 96 | 10/40 | 13/40 | 13/40 | 0/40 |
+| 0.10% | Intact through 96 steps | 3/40 | 6/40 | 4/40 | 0/40 |
+| 0.10% | Matches at step 96 | 3/40 | 6/40 | 4/40 | 0/40 |
+| 0.50% | Intact through 96 steps | 0/40 | 0/40 | 0/40 | 0/40 |
+| 0.50% | Matches at step 96 | 0/40 | 0/40 | 0/40 | 0/40 |
+| 1.00% | Intact through 96 steps | 0/40 | 0/40 | 0/40 | 0/40 |
+| 1.00% | Matches at step 96 | 0/40 | 0/40 | 0/40 | 0/40 |
+
+Both rows give counts out of 40 runs. The graph below shows only the proportion that stayed intact through all 96 steps.
 
 ![The percentage of runs where each pattern stayed intact as noise increased, with uncertainty bars](./dist/figures/noise.svg)
 

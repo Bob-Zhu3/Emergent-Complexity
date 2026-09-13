@@ -15,7 +15,11 @@ const ageTable = ageDemo.runs.map(run => {
 const selected = survey.rules.find(result => result.rule === survey.selectedRule);
 const densityTable = ['B3/S23', 'B36/S23'].flatMap(rule => density.config.densities.map(p => [rule, percent(p), percent(mean(density.runs.filter(run => run.rule === rule && run.density === p).map(run => run.finalDensity)))]));
 const detailTable = detail.runs.filter(run => run.density === 0.1).map(run => [run.boundary === 'wrap' ? 'Wrapping' : 'Empty', run.seed, run.label, run.period ?? 'No repeat found', percent(run.finalDensity), percent(run.tailActivity)]);
-const noiseTable = noise.config.rates.map(p => [percent(p), ...['block', 'blinker', 'glider', 'replicator'].map(pattern => `${noise.results.find(run => run.pattern === pattern && run.noise === p).intact}/40`)]);
+const noiseChecks = [['Intact through 96 steps', 'intact'], ['Matches at step 96', 'finalMatches']];
+const noiseTable = noise.config.rates.flatMap(p => noiseChecks.map(([label, field]) => [percent(p), label, ...['block', 'blinker', 'glider', 'replicator'].map(pattern => {
+  const result = noise.results.find(run => run.pattern === pattern && run.noise === p);
+  return `${result[field]}/${result.trials}`;
+})]));
 const soupTable = [...new Set(soup.runs.map(run => run.rule))].flatMap(rule => [0, 0.0001, 0.01].map(p => {
   const rows = soup.runs.filter(run => run.rule === rule && run.noise === p);
   return [rule, percent(p), percent(mean(rows.map(run => run.tailActivity))), percent(mean(rows.map(run => run.hammingFromBaseline)))];
@@ -144,9 +148,11 @@ Each result was compared with a run of the same pattern without noise. That refe
 
 To check whether a pattern stayed intact, the code compared its living cells and their immediate neighbors with the reference at every step. The states had to agree at every checked location. Changes far away in the background were ignored.
 
-The results use two checks. Intact throughout means the pattern matched the reference on all 96 steps. Final match means it matched at step 96, even if it had been disturbed earlier. These are strict checks: a recognizable pattern can fail if it shifts position or falls one step behind the reference.
+The table shows two checks. Intact through 96 steps means the pattern matched the reference on every step. Matches at step 96 counts all runs that matched at the end, including those that differed earlier. These are strict checks: a recognizable pattern can fail if it shifts position or falls one step behind the reference.
 
-${table(['Chance of a flip per cell per step', 'Block intact', 'Blinker intact', 'Glider intact', 'Replicator intact'], noiseTable)}
+${table(['Flip chance per cell per step', 'Check', 'Block', 'Blinker', 'Glider', 'Replicator'], noiseTable)}
+
+Both rows give counts out of 40 runs. The graph below shows only the proportion that stayed intact through all 96 steps.
 
 ![The percentage of runs where each pattern stayed intact as noise increased, with uncertainty bars](./figures/noise.svg)
 
