@@ -29,7 +29,7 @@ export function worldFromQuery(search) {
   const world = new Automaton({ width, rule: query.get('rule') ?? (pattern ? patterns[pattern].rule : 'B3/S23'), boundary: query.get('boundary') ?? 'wrap', noise: Number(query.get('noise') ?? 0), noiseSeed: query.get('noiseSeed') ?? `${seed}:noise` });
   const cells = pattern ? patternCells(width, width, pattern) : startingCells(width, width, density, seed, start);
   world.setCells(cells);
-  return { world, steps, seed, density, start };
+  return { world, steps, seed, density, start, pattern };
 }
 
 export function replayURL(run, steps = 0) {

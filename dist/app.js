@@ -2,11 +2,12 @@ import { Automaton, parseRule } from './lib/engine.js';
 import { patterns, patternCells } from './lib/patterns.js';
 import { worldFromQuery, startingCells } from './lib/launch.js';
 import { ageColor, ageScale } from './lib/colors.js';
+import { createStartInfo, restartStartInfo, restoreStartInfo, renderWorldImage } from './lib/image-export.js';
 
 const $ = id => document.getElementById(id);
 const canvas = $('world');
 const context = canvas.getContext('2d');
-let world, initial, running = false, lastTime = 0, accumulated = 0, history = [];
+let world, initial, startInfo, running = false, lastTime = 0, accumulated = 0, history = [];
 let cursor = null, drawing = false, drawValue = 1, lastCell = null, noticeTimer;
 let hoveredCell = null;
 
@@ -24,17 +25,18 @@ function stop() {
   $('canvas-hint').textContent = 'Paused · drag to draw';
 }
 
-function captureInitial() {
-  initial = world.snapshot();
+function captureInitial(info = startInfo) {
+  startInfo = info;
+  initial = { ...world.snapshot(), startInfo: { ...startInfo } };
   history = [world.population / world.size];
 }
 
-function setWorld(next, message) {
+function setWorld(next, message, info = createStartInfo(next)) {
   stop();
   world = next;
   cursor = null;
   hoveredCell = null;
-  captureInitial();
+  captureInitial(info);
   syncControls();
   render();
   if (message) notice(message);
@@ -48,7 +50,7 @@ function freshRandom() {
   try {
     const next = new Automaton(settings());
     next.setCells(startingCells(next.width, next.height, Number($('density').value) / 100, $('seed').value, $('start-area').value));
-    setWorld(next);
+    setWorld(next, undefined, createStartInfo(next, { source: 'random', seed: $('seed').value, densitySetting: Number($('density').value) / 100, startArea: $('start-area').value }));
   } catch (error) { notice(error.message); }
 }
 
@@ -128,9 +130,10 @@ function changeRule(value) {
   try {
     const parsed = parseRule(value);
     stop();
+    const info = restartStartInfo(world, startInfo);
     world.rule = parsed;
     world.setCells(world.cells.slice(0, world.size));
-    captureInitial();
+    captureInitial(info);
     syncControls();
     render();
   } catch (error) { notice(error.message); syncControls(); }
@@ -156,7 +159,7 @@ function loadPattern(key) {
   const pattern = patterns[key];
   const next = new Automaton({ ...settings(), rule: pattern.rule, noise: 0 });
   next.setCells(patternCells(next.width, next.height, key));
-  setWorld(next, pattern.description);
+  setWorld(next, pattern.description, createStartInfo(next, { source: 'pattern', pattern: pattern.name }));
 }
 
 for (const [key, pattern] of Object.entries(patterns)) {
@@ -179,9 +182,12 @@ $('play').addEventListener('click', () => {
   $('canvas-hint').textContent = 'Running · draw to pause';
 });
 $('step').addEventListener('click', () => { stop(); step(); });
-$('reset').addEventListener('click', () => setWorld(Automaton.fromSnapshot(initial), 'Restored the starting grid and random state.'));
+$('reset').addEventListener('click', () => setWorld(Automaton.fromSnapshot(initial), 'Restored the starting grid and random state.', initial.startInfo));
 $('randomize').addEventListener('click', freshRandom);
-$('clear').addEventListener('click', () => setWorld(new Automaton(settings())));
+$('clear').addEventListener('click', () => {
+  const next = new Automaton(settings());
+  setWorld(next, undefined, createStartInfo(next, { source: 'empty' }));
+});
 $('density').addEventListener('input', () => { $('density-value').textContent = `${$('density').value}%`; });
 $('speed').addEventListener('input', () => { $('speed-value').textContent = `${$('speed').value} /s`; });
 $('color-mode').addEventListener('change', render);
@@ -189,13 +195,14 @@ $('grid-size').addEventListener('change', freshRandom);
 $('boundary').addEventListener('change', () => {
   const next = new Automaton({ ...settings(), width: world.width, height: world.height });
   next.setCells(world.cells.slice(0, world.size));
-  setWorld(next, 'Changed the boundary and restarted the current grid at generation 0.');
+  setWorld(next, 'Changed the boundary and restarted the current grid at generation 0.', restartStartInfo(world, startInfo));
 });
 $('noise').addEventListener('change', () => {
   stop();
+  const info = restartStartInfo(world, startInfo);
   world.noise = Number($('noise').value);
   world.setCells(world.cells.slice(0, world.size));
-  captureInitial();
+  captureInitial(info);
   syncControls();
   render();
 });
@@ -217,6 +224,7 @@ function paint(from, to, value) {
     world.cells[i] = value;
   }
   world.setCells(world.cells.slice(0, world.size));
+  startInfo = restartStartInfo(world, startInfo, 'edited');
   render();
 }
 
@@ -277,33 +285,9 @@ function download(data, filename, type) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-$('export-json').addEventListener('click', () => download(JSON.stringify(world.snapshot(), null, 2), `world-g${world.generation}.json`, 'application/json'));
+$('export-json').addEventListener('click', () => download(JSON.stringify({ ...world.snapshot(), startInfo }, null, 2), `world-g${world.generation}.json`, 'application/json'));
 $('export-image').addEventListener('click', () => {
-  const image = document.createElement('canvas');
-  const imageWidth = Math.max(600, canvas.width);
-  const gridHeight = Math.round(imageWidth * world.height / world.width);
-  const showAge = $('color-mode').value === 'age';
-  image.width = imageWidth;
-  image.height = gridHeight + (showAge ? 140 : 56);
-  const paint = image.getContext('2d');
-  paint.fillStyle = '#101c20';
-  paint.fillRect(0, 0, image.width, image.height);
-  paint.imageSmoothingEnabled = false;
-  paint.drawImage(canvas, 0, 0, imageWidth, gridHeight);
-  paint.fillStyle = '#ffffff';
-  paint.font = '16px sans-serif';
-  paint.fillText(`${world.rule.name} | Generation ${world.generation} | ${world.boundary === 'wrap' ? 'Wrapping' : 'Empty edges'} | Noise ${world.noise * 100}%`, 16, gridHeight + 30);
-  if (showAge) {
-    ageScale.forEach((stop, i) => {
-      const x = 16 + i * (imageWidth - 32) / ageScale.length;
-      paint.fillStyle = stop.color;
-      paint.fillRect(x, gridHeight + 46, 22, 18);
-      paint.fillStyle = '#ffffff';
-      paint.fillText(`${stop.age}${i === ageScale.length - 1 ? '+' : ''}`, x + 28, gridHeight + 61);
-    });
-    paint.fillText('Cell age: consecutive living steps. Death resets age.', 16, gridHeight + 93);
-    if (world.ageStartGeneration > 0) paint.fillText(`Age history starts at generation ${world.ageStartGeneration}.`, 16, gridHeight + 119);
-  }
+  const image = renderWorldImage(world, startInfo, $('color-mode').value);
   const anchor = document.createElement('a');
   anchor.href = image.toDataURL('image/png');
   anchor.download = `${world.rule.name.replace('/', '-')}-g${world.generation}.png`;
@@ -315,7 +299,9 @@ $('snapshot-file').addEventListener('change', async () => {
   if (!file) return;
   try {
     if (file.size > 2000000) throw new Error('Snapshot is too large (maximum 2 MB).');
-    setWorld(Automaton.fromSnapshot(JSON.parse(await file.text())), 'Snapshot loaded. Its random state is preserved for exact continuation.');
+    const snapshot = JSON.parse(await file.text());
+    const next = Automaton.fromSnapshot(snapshot);
+    setWorld(next, 'Snapshot loaded. Its random state and available starting details are preserved.', restoreStartInfo(snapshot.startInfo, next));
   } catch (error) { notice(error.message); }
   $('snapshot-file').value = '';
 });
@@ -347,7 +333,7 @@ try {
   $('density').value = Math.round(replay.density * 100);
   $('start-area').value = replay.start;
   $('density-value').textContent = `${$('density').value}%`;
-  setWorld(replay.world);
+  setWorld(replay.world, undefined, createStartInfo(replay.world, replay.pattern ? { source: 'pattern', pattern: patterns[replay.pattern].name } : { source: 'random', seed: replay.seed, densitySetting: replay.density, startArea: replay.start }));
   if (replay.steps) step(replay.steps);
 } catch (error) {
   freshRandom();

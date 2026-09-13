@@ -21,7 +21,8 @@ Open http://127.0.0.1:4173. Use an HTTP server rather than opening the HTML dire
 - Edit all nine birth and nine survival conditions; switch between Life, HighLife, and custom rules.
 - Set grid size, initial density, seed, boundary behavior, and random-flip probability. Start across the whole grid or inside a centered 16 × 16 patch to watch outward growth.
 - Load a block, blinker, glider, R-pentomino, or HighLife replicator.
-- Save a PNG with its color key or a complete JSON snapshot; reload a snapshot for exact continuation, including cell ages and future noise. Older snapshots start a new, explicitly labeled age history at their saved generation.
+- Save a PNG with the rule, generation, grid size, edges, noise level, current population and density, actual starting density, requested density setting, starting area, seed, and color key. The labels describe the recorded run even if the controls have since been changed.
+- Save a complete JSON snapshot and reload it for exact continuation, including cell ages, future noise, and available starting details. Older snapshots label missing starting details and start a new, explicitly labeled age history at their saved generation.
 - Inspect all 100 sampled rules and their six starts, replay any recorded run, or rerun the survey in a background worker.
 - Compare density, boundary, and noise experiments with downloadable measurements.
 
@@ -57,6 +58,7 @@ The two age-color runs are included in the total of 1,992. They start Life witho
 | --- | --- |
 | `dist/lib/engine.js` | Binary grid, cell ages, rule parsing, simultaneous updates, seeded randomness, noise, and snapshots |
 | `dist/lib/colors.js` | Fixed age-color scale shared by the lab and saved demonstration figure |
+| `dist/lib/image-export.js` | Starting details, snapshot metadata validation, and labeled PNG rendering |
 | `dist/lib/patterns.js` | Small known seeds and centered placement |
 | `dist/lib/analysis.js` | Random-rule sampling, exact cycle detection, run measurements, and pattern-noise experiments |
 | `dist/lib/launch.js` | Validated replay links that reconstruct recorded starts |
