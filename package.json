@@ -8,6 +8,7 @@
     "start": "node scripts/serve.mjs",
     "test": "node --test",
     "experiment": "node scripts/experiments.mjs",
+    "age-demo": "node scripts/age-demo.mjs",
     "check": "node scripts/check.mjs",
     "report": "node scripts/report.mjs"
   }

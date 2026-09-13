@@ -6,7 +6,7 @@ This is an AI-assisted draft for George Tsoukalas's initial assignment. It expla
 
 This project asks how simple rules can produce different patterns across a grid. How much changes when one rule changes? Does the starting number of living cells matter more than where those cells are placed? What happens to a familiar pattern when random disturbances are added?
 
-The simulator uses a two-dimensional grid where each cell is alive or dead. It covers Conway's Game of Life, other rules of the same kind, and Option B of the assignment: adding noise. There are 1,990 recorded runs: 600 testing random rules, 50 comparing Life and HighLife, 56 taking a closer look at one rule, 960 testing how patterns hold up under noise, and 324 adding noise to random starting grids. The examples of known patterns are separate from this total.
+The simulator uses a two-dimensional grid where each cell is alive or dead. It covers Conway's Game of Life, other rules of the same kind, and Option B of the assignment: adding noise. The original study contains 1,990 recorded runs: 600 testing random rules, 50 comparing Life and HighLife, 56 taking a closer look at one rule, 960 testing how patterns hold up under noise, and 324 adding noise to random starting grids. The examples of known patterns and the two added age-color demonstrations are separate from this total.
 
 The website lets you draw cells, change the rules, and watch what happens. It also has results for all 100 sampled rules, graphs of each run, replay links, and downloadable data. The simulator runs entirely in the browser.
 
@@ -25,6 +25,10 @@ The grid has two options for its edges. With wrapping edges, the left and right 
 You can draw or erase cells, use the keyboard to edit them, and run, pause, or advance the simulation one step at a time. Other controls change the speed, grid size, starting density, rule, and amount of noise. Density means the fraction of cells that are alive. The lab also includes known patterns to try.
 
 Reset returns to the saved starting point. Drawing or changing the rule, noise, or edge setting starts a new run at step zero. Saving a JSON snapshot lets you resume from the current step, including the same future random changes. Saving a PNG gives you an image of the grid.
+
+The lab can also color cells by age. New cells start white and gradually turn orange, yellow, green, cyan, and blue as they stay alive. The color key is fixed across rules, so the same color means the same age in every run. Pointing to a cell shows its exact age. The single-color option remains available. Age only changes the display; it does not affect births, survival, noise, or how runs are classified.
+
+New snapshots preserve cell ages, and saved images include the color key. Older snapshots still load, but they do not contain earlier age information. For those files, the lab labels when age tracking begins. The starting-area control can place random cells in a small center patch, leaving room to watch growth spread outward. Its density setting then applies within that patch.
 
 The website and the script that runs batches of experiments use the same simulation code. Random runs use a seed: a short text label that determines the sequence of random choices. Using the same seed and settings reproduces the same run. The starting grid and the added noise use separate random sequences, so changing the noise does not change the starting grid. The code uses the Mulberry32 random number generator, with each text seed converted into a number.
 
@@ -183,6 +187,35 @@ Each row averages the six starting grids and three noise seeds. As before, the z
 
 Even a little noise led to large differences from the control for the selected rule. HighLife showed another detail: at the smallest nonzero noise level, its average late activity was lower than without noise. In these runs, adding more noise did not always lead to more activity.
 
+## What the age colors reveal
+
+The age view was inspired by [Cary Huang's The Conway Multiverse, at 2:09](https://www.youtube.com/watch?v=QK_KZv-YyOc&t=129s). In this implementation, a newly living cell has age 1 and gains one for each consecutive step it stays alive. Dead cells have age 0. With noise enabled, age follows the state after the flips. The color key marks ages 1, 4, 16, 32, 64, and 128; older cells remain blue, even though their recorded ages continue increasing. Initial living cells also start at 1, so one that survives through generation 128 has age 129.
+
+Two extra demonstrations compare Life without Death, B3/S012345678, with Coral, B3/S45678. Both use the same 120 living cells inside a 16 × 16 starting patch, generated at 50% density with seed growth-demo. Each runs for 128 steps on a 128 × 128 grid with empty edges and no noise. These are illustrative runs, separate from the original study. Neither reached an edge during the run.
+
+| Rule | Living cells after 128 steps | Width × height of occupied region | Reached an edge? |
+| --- | --- | --- | --- |
+| Life without Death | 4,907 | 94 × 96 | No |
+| Coral | 300 | 24 × 24 | No |
+
+The occupied region is the smallest rectangle containing every living cell, including any empty space between them. In this pair, Life without Death spread much farther. Its broad bands of younger cells surround an older center. Coral has a much thinner band around its older cells. The [saved measurements and age maps](./dist/data/age-demo.json) include the population and occupied region at every step. You can replay [Life without Death](./?rule=B3%2FS012345678&size=128&start=patch&density=0.5&seed=growth-demo&boundary=fixed&noise=0&steps=128) and [Coral](./?rule=B3%2FS45678&size=128&start=patch&density=0.5&seed=growth-demo&boundary=fixed&noise=0&steps=128) in the lab.
+
+![Life without Death and Coral after 128 steps from the same starting patch, using the same age colors and grid scale](./dist/figures/age-growth.svg)
+
+At [20:40 in the video](https://www.youtube.com/watch?v=QK_KZv-YyOc&t=1240s), Huang uses the width of these color bands to estimate relative growth speed. The reasoning is useful: if cells remain alive after a growth front passes, the age difference between two locations tells us how long the front took to travel between them. For example, 24 cells of distance over 120 steps would mean an average of 0.2 cells per step along that direction.
+
+That estimate needs care when cells die and return, since their ages restart. Noise, changing growth direction, and the blue color limit also hide parts of the history. A wider gradient can suggest faster growth, but the two demonstrations above do not establish a general speed ratio between these rules. A stronger comparison would track the same part of each growing boundary over time, repeat the test with new seeds, and stop measurements before activity reaches a grid edge.
+
+## Further ideas from the video
+
+Small changes to a rule can be explained by looking at the affected cells. At [5:53](https://www.youtube.com/watch?v=QK_KZv-YyOc&t=353s), the video changes Life to B3/S234, which allows survival with four neighbors and supports corridor-like structures. At [7:28](https://www.youtube.com/watch?v=QK_KZv-YyOc&t=448s), it instead adds birth with four neighbors, giving B34/S23 and a much more restless example. This suggests a useful follow-up to the selected rule: remove one survival condition at a time while keeping the starting grid fixed. Removing survival with zero neighbors would directly test the proposed role of isolated cells in its sparse, settled runs.
+
+The video's large rule map also samples a different set of worlds. At [14:43](https://www.youtube.com/watch?v=QK_KZv-YyOc&t=883s), Huang explains that it includes only uninterrupted ranges of birth and survival counts. There are 45 nonempty ranges within 0 through 8, plus the empty choice, giving 46 × 46 = 2,116 rules. This project's 100-rule sample instead draws from all 262,144 possibilities. HighLife's birth counts, 3 and 6, are not consecutive. The selected rule's survival counts skip 7. Both therefore fall outside that map. The proportion of active worlds in this survey should not be compared directly with the video's map as if both used the same sampling method.
+
+Growth and constant change are also different questions. In Life without Death, all living cells survive when noise is off. That means old cells can stay fixed while new cells extend the boundary. It also rules out cycles longer than one step: returning to an earlier arrangement would require removing a cell. On a finite grid this process must eventually stop growing. Coral allows deaths as well as births; [Eppstein describes its slow growth and small oscillators](https://ics.uci.edu/~eppstein/ca/wanted.html). Population, the distance reached by a growing boundary, and cell turnover can therefore tell different stories about the same run.
+
+These are connections to existing work and possible follow-up questions. They do not establish a newly discovered rule, a proof of chaos, or a new self-replicating pattern.
+
 ## How to repeat the experiments
 
 To run the project locally, install Node.js 22 or later and use the commands below from the project folder. No extra JavaScript packages are needed.
@@ -191,13 +224,14 @@ To run the project locally, install Node.js 22 or later and use the commands bel
 npm start
 npm test
 npm run experiment
+npm run age-demo
 npm run report
 npm run check
 ```
 
-The first command starts the website at http://127.0.0.1:4173. Leave that running and use another terminal for the remaining commands. The test command checks the calculations. The experiment command repeats the studies and saves their measurements in dist/data. The report command rebuilds this report from those measurements, and the check command looks for script errors and broken local links.
+The first command starts the website at http://127.0.0.1:4173. Leave that running and use another terminal for the remaining commands. The test command checks the calculations. The experiment command repeats the original studies and saves their measurements in dist/data. The age-demo command repeats the two added demonstrations. The report command rebuilds this report from those measurements, and the check command looks for script errors and broken local links.
 
-The figures are already included with the website. To regenerate them, install the Python packages listed in requirements-report.txt and run python scripts/figures.py. This uses Matplotlib and NumPy to create SVG and PNG images.
+The figures are already included with the website. To regenerate them, install the Python packages listed in requirements-report.txt and run python scripts/figures.py for the original figures and python scripts/age-figure.py for the added age comparison. These use Matplotlib and NumPy to create SVG and PNG images.
 
 The data folder includes a manifest listing the settings and seeds. For the random-rule, density, follow-up, and random-grid noise studies, the saved data give the number of living cells, changed cells, and noise flips at every step.
 
@@ -223,7 +257,7 @@ Another direction would be to count how many recognizable replicator copies surv
 
 Codex wrote the simulator, chose Option B, planned and ran the experiments, wrote the tests, generated the figures, and drafted this report. Bob still needs to review the choices, understand the code, and decide which conclusions he can support before submitting it.
 
-The assignment also asks for a response to the introductory video, what was interesting about the project, and what to learn next. Those personal reflections have not been added to this draft. The video's transcript was unavailable when the project was built, so the report does not include a viewing reflection. The proposed questions above are starting points for Bob to consider while exploring the lab.
+The assignment also asks for a response to the introductory video, what was interesting about the project, and what to learn next. Those personal reflections have not been added to this draft. The assigned video's transcript was unavailable when the project was built. For this update, Codex read the transcript of The Conway Multiverse and inspected its age-color comparison. The new discussion is based on that source and the added demonstrations; it does not stand in for Bob's personal response to the assigned video. The proposed questions above are starting points for Bob to consider while exploring the lab.
 
 ## Sources and data
 
@@ -231,4 +265,7 @@ The assignment also asks for a response to the introductory video, what was inte
 - [Introductory slides supplied by George](https://docs.google.com/presentation/d/1gsOaxcF1HxZjXxVJ6rrsMIikBtcoJwq_3MrEeSp8XI4/edit).
 - [Emergent Garden, Artificial Life, assigned introductory video](https://www.youtube.com/watch?v=2g-CrQfYNtE).
 - [David Eppstein, Lifelike Rules and Pattern Notation](https://ics.uci.edu/~eppstein/ca/lifelike.html), source of the rule notation and HighLife replicator seed.
+- [Cary Huang (carykh), The Conway Multiverse](https://www.youtube.com/watch?v=QK_KZv-YyOc), June 24, 2026. Transcript read and age-color comparison inspected for this update.
+- [David Eppstein, Most Wanted](https://ics.uci.edu/~eppstein/ca/wanted.html), observations about Coral and other rules. Its search history does not establish which patterns remain undiscovered today.
+- [Age-color demonstrations and measurements (JSON)](./dist/data/age-demo.json).
 - [Raw run summaries (CSV)](./dist/data/runs.csv), [pattern-noise trials (CSV)](./dist/data/pattern-noise.csv), [full survey (JSON)](./dist/data/survey.json), [experiment manifest (JSON)](./dist/data/manifest.json).

@@ -59,6 +59,8 @@ export class Automaton {
     this.noise = noise;
     this.random = new Random(noiseSeed);
     this.cells = new Uint8Array(this.size + 1);
+    this.ages = new Float64Array(this.size);
+    this.ageStartGeneration = 0;
     this.nextCells = new Uint8Array(this.size + 1);
     this.rowSums = new Uint8Array(this.size + 1);
     this.left = new Uint32Array(this.size);
@@ -85,6 +87,8 @@ export class Automaton {
     if (cells.length !== this.size || cells.some(value => value !== 0 && value !== 1)) throw new Error('Grid must contain exactly width x height binary cells.');
     this.cells.fill(0);
     this.cells.set(cells);
+    this.ages.set(cells);
+    this.ageStartGeneration = 0;
     this.generation = 0;
     this.population = cells.reduce((sum, value) => sum + value, 0);
     this.changes = 0;
@@ -106,6 +110,7 @@ export class Automaton {
         flips++;
       }
       nextCells[i] = value;
+      this.ages[i] = value ? cells[i] ? Math.min(Number.MAX_SAFE_INTEGER, this.ages[i] + 1) : 1 : 0;
       population += value;
       changes += value !== cells[i];
     }
@@ -125,7 +130,8 @@ export class Automaton {
     return {
       format: 'emergent-complexity-v1', width: this.width, height: this.height,
       rule: this.rule.name, boundary: this.boundary, noise: this.noise,
-      generation: this.generation, randomState: this.random.state, rows
+      generation: this.generation, randomState: this.random.state, rows,
+      ages: Array.from(this.ages), ageStartGeneration: this.ageStartGeneration
     };
   }
 
@@ -137,6 +143,15 @@ export class Automaton {
     world.setCells(Uint8Array.from(data.rows.join(''), Number));
     world.generation = data.generation;
     world.random.state = data.randomState;
+    if (Object.hasOwn(data, 'ages') || Object.hasOwn(data, 'ageStartGeneration')) {
+      if (!Number.isSafeInteger(data.ageStartGeneration) || data.ageStartGeneration < 0 || data.ageStartGeneration > data.generation) throw new Error('Snapshot age history has an invalid starting generation.');
+      const oldest = Math.min(Number.MAX_SAFE_INTEGER, data.generation - data.ageStartGeneration + 1);
+      if (!Array.isArray(data.ages) || data.ages.length !== world.size || data.ages.some((age, i) => !Number.isSafeInteger(age) || age < 0 || age > oldest || (world.cells[i] ? age === 0 : age !== 0))) throw new Error('Snapshot ages do not match its cells or generation.');
+      world.ages.set(data.ages);
+      world.ageStartGeneration = data.ageStartGeneration;
+    } else {
+      world.ageStartGeneration = data.generation;
+    }
     return world;
   }
 }

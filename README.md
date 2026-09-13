@@ -17,10 +17,11 @@ Open http://127.0.0.1:4173. Use an HTTP server rather than opening the HTML dire
 ## What you can do
 
 - Draw or erase cells; run, pause, step, reset, and adjust speed.
+- Color cells by consecutive living age, from white through orange, yellow, green, cyan, and blue. The fixed key ends at 128+ steps; point to a cell to read its exact age.
 - Edit all nine birth and nine survival conditions; switch between Life, HighLife, and custom rules.
-- Set grid size, initial density, seed, boundary behavior, and random-flip probability.
+- Set grid size, initial density, seed, boundary behavior, and random-flip probability. Start across the whole grid or inside a centered 16 × 16 patch to watch outward growth.
 - Load a block, blinker, glider, R-pentomino, or HighLife replicator.
-- Save a PNG or a complete JSON snapshot; reload a snapshot for exact continuation, including future noise.
+- Save a PNG with its color key or a complete JSON snapshot; reload a snapshot for exact continuation, including cell ages and future noise. Older snapshots start a new, explicitly labeled age history at their saved generation.
 - Inspect all 100 sampled rules and their six starts, replay any recorded run, or rerun the survey in a background worker.
 - Compare density, boundary, and noise experiments with downloadable measurements.
 
@@ -31,6 +32,7 @@ On the canvas, dragging toggles a starting cell and paints that same state along
 ```text
 npm test
 npm run experiment
+npm run age-demo
 npm run report
 npm run check
 ```
@@ -42,15 +44,19 @@ For the scientific figures only, use Python 3.10 or later with Matplotlib and Nu
 ```text
 python -m pip install -r requirements-report.txt
 python scripts/figures.py
+python scripts/age-figure.py
 ```
 
 This regenerates the SVG and PNG figures in `dist/figures/`. Regenerate figures and the report after changing the experimental data. Precomputed artifacts are committed, so neither Python nor a build tool is needed to use the website.
+
+The two age-color demonstrations are separate from the original 1,990 runs. They start Life without Death and Coral from the same centered patch and record their population, occupied region, and final cell ages in `dist/data/age-demo.json`. The report includes the comparison and timestamped discussion of [Cary Huang's The Conway Multiverse](https://www.youtube.com/watch?v=QK_KZv-YyOc).
 
 ## How the code fits together
 
 | File | Responsibility |
 | --- | --- |
-| `dist/lib/engine.js` | Binary grid, rule parsing, simultaneous updates, seeded randomness, noise, and snapshots |
+| `dist/lib/engine.js` | Binary grid, cell ages, rule parsing, simultaneous updates, seeded randomness, noise, and snapshots |
+| `dist/lib/colors.js` | Fixed age-color scale shared by the lab and saved demonstration figure |
 | `dist/lib/patterns.js` | Small known seeds and centered placement |
 | `dist/lib/analysis.js` | Random-rule sampling, exact cycle detection, run measurements, and pattern-noise experiments |
 | `dist/lib/launch.js` | Validated replay links that reconstruct recorded starts |
@@ -58,6 +64,8 @@ This regenerates the SVG and PNG figures in `dist/figures/`. Regenerate figures 
 | `dist/research.js` | Survey table, run inspection, replay links, and worker controls |
 | `dist/survey-worker.js` | Browser background survey using the shared analysis code |
 | `scripts/experiments.mjs` | Complete reproducible batch experiment |
+| `scripts/age-demo.mjs` | Matched starting patches and measurements for the age-color demonstration |
+| `scripts/age-figure.py` | Age-color comparison from the saved demonstration data |
 | `scripts/report.mjs` | Markdown and HTML report generated from measurements |
 | `scripts/figures.py` | Standalone scientific figures from the recorded data |
 | `test/` | Independent reference-engine checks and experiment/replay validation |

@@ -1,12 +1,14 @@
-import { Automaton, parseRule, randomCells } from './lib/engine.js';
+import { Automaton, parseRule } from './lib/engine.js';
 import { patterns, patternCells } from './lib/patterns.js';
-import { worldFromQuery } from './lib/launch.js';
+import { worldFromQuery, startingCells } from './lib/launch.js';
+import { ageColor, ageScale } from './lib/colors.js';
 
 const $ = id => document.getElementById(id);
 const canvas = $('world');
 const context = canvas.getContext('2d');
 let world, initial, running = false, lastTime = 0, accumulated = 0, history = [];
 let cursor = null, drawing = false, drawValue = 1, lastCell = null, noticeTimer;
+let hoveredCell = null;
 
 function notice(message) {
   $('notice').textContent = message;
@@ -30,6 +32,8 @@ function captureInitial() {
 function setWorld(next, message) {
   stop();
   world = next;
+  cursor = null;
+  hoveredCell = null;
   captureInitial();
   syncControls();
   render();
@@ -43,7 +47,7 @@ function settings() {
 function freshRandom() {
   try {
     const next = new Automaton(settings());
-    next.setCells(randomCells(next.width, next.height, Number($('density').value) / 100, $('seed').value));
+    next.setCells(startingCells(next.width, next.height, Number($('density').value) / 100, $('seed').value, $('start-area').value));
     setWorld(next);
   } catch (error) { notice(error.message); }
 }
@@ -63,7 +67,7 @@ function syncControls() {
   $('noise').value = noise;
   $('noise-help').textContent = world.noise === 0 ? 'Each cell follows the rule exactly.' : `After the rule runs, each cell independently flips with probability ${world.noise * 100}%. About ${(world.noise * world.size).toFixed(1)} flips per step on this grid.`;
   $('world-rule').textContent = world.rule.name;
-  $('world-title').textContent = world.rule.name === 'B3/S23' ? "Conway's Life" : world.rule.name === 'B36/S23' ? 'HighLife' : 'Custom world';
+  $('world-title').textContent = $('rule-preset').value === 'custom' ? 'Custom world' : $('rule-preset').selectedOptions[0].textContent.split(' · ')[0];
   $('world-size').textContent = `${world.width} × ${world.height} · ${world.boundary === 'wrap' ? 'wrapping' : 'empty edges'}`;
 }
 
@@ -77,10 +81,15 @@ function render() {
   for (let y = 0; y < world.height; y++) {
     for (let x = 0; x < world.width; x++) context.fillRect(x * 10, y * 10, 9, 9);
   }
-  context.fillStyle = '#bdf48f';
+  const showAge = $('color-mode').value === 'age';
   for (let i = 0; i < world.size; i++) {
-    if (world.cells[i]) context.fillRect((i % world.width) * 10, Math.floor(i / world.width) * 10, 9, 9);
+    if (world.cells[i]) {
+      context.fillStyle = showAge ? ageColor(world.ages[i]) : '#bdf48f';
+      context.fillRect((i % world.width) * 10, Math.floor(i / world.width) * 10, 9, 9);
+    }
   }
+  $('age-legend').hidden = !showAge;
+  $('age-history-note').textContent = world.ageStartGeneration > 0 ? `This older snapshot has no earlier age history. Ages count from generation ${world.ageStartGeneration.toLocaleString()}.` : '';
   if (cursor && document.activeElement === canvas) {
     context.strokeStyle = '#fff';
     context.lineWidth = 2;
@@ -93,6 +102,17 @@ function render() {
   const data = history.slice(-180);
   $('history-path').setAttribute('d', data.map((value, i) => `${i ? 'L' : 'M'}${i * 600 / Math.max(1, data.length - 1)},${53 - value * 50}`).join(' '));
   $('history-chart').setAttribute('aria-label', `Population density over the last ${data.length} recorded steps, ending at ${(100 * world.population / world.size).toFixed(1)} percent.`);
+  inspectCell(hoveredCell ?? cursor);
+}
+
+function inspectCell(cell) {
+  if (!cell) {
+    $('cell-age').textContent = 'Point to a cell or use the arrow keys to read its age.';
+    return;
+  }
+  const x = Math.min(cell.x, world.width - 1), y = Math.min(cell.y, world.height - 1);
+  const i = y * world.width + x;
+  $('cell-age').textContent = `Cell (${x + 1}, ${y + 1}): ${world.cells[i] ? `alive, age ${world.ages[i].toLocaleString()} ${world.ages[i] === 1 ? 'step' : 'steps'}` : 'dead, age 0'}.`;
 }
 
 function step(count = 1) {
@@ -109,8 +129,7 @@ function changeRule(value) {
     const parsed = parseRule(value);
     stop();
     world.rule = parsed;
-    world.generation = 0;
-    world.changes = 0;
+    world.setCells(world.cells.slice(0, world.size));
     captureInitial();
     syncControls();
     render();
@@ -165,6 +184,7 @@ $('randomize').addEventListener('click', freshRandom);
 $('clear').addEventListener('click', () => setWorld(new Automaton(settings())));
 $('density').addEventListener('input', () => { $('density-value').textContent = `${$('density').value}%`; });
 $('speed').addEventListener('input', () => { $('speed-value').textContent = `${$('speed').value} /s`; });
+$('color-mode').addEventListener('change', render);
 $('grid-size').addEventListener('change', freshRandom);
 $('boundary').addEventListener('change', () => {
   const next = new Automaton({ ...settings(), width: world.width, height: world.height });
@@ -174,8 +194,7 @@ $('boundary').addEventListener('change', () => {
 $('noise').addEventListener('change', () => {
   stop();
   world.noise = Number($('noise').value);
-  world.generation = 0;
-  world.changes = 0;
+  world.setCells(world.cells.slice(0, world.size));
   captureInitial();
   syncControls();
   render();
@@ -197,8 +216,7 @@ function paint(from, to, value) {
     world.population += value - world.cells[i];
     world.cells[i] = value;
   }
-  world.generation = 0;
-  world.changes = 0;
+  world.setCells(world.cells.slice(0, world.size));
   render();
 }
 
@@ -214,7 +232,8 @@ canvas.addEventListener('pointerdown', event => {
   paint(lastCell, lastCell, drawValue);
 });
 canvas.addEventListener('pointermove', event => {
-  if (!drawing) return;
+  hoveredCell = pointerCell(event);
+  if (!drawing) { inspectCell(hoveredCell); return; }
   const next = pointerCell(event);
   paint(lastCell, next, drawValue);
   lastCell = next;
@@ -229,10 +248,12 @@ function finishDrawing() {
 canvas.addEventListener('pointerup', finishDrawing);
 canvas.addEventListener('pointercancel', finishDrawing);
 canvas.addEventListener('lostpointercapture', finishDrawing);
+canvas.addEventListener('pointerleave', () => { hoveredCell = null; inspectCell(cursor); });
 canvas.addEventListener('keydown', event => {
   if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Enter', ' '].includes(event.key)) return;
   event.preventDefault();
   stop();
+  hoveredCell = null;
   cursor ??= { x: Math.floor(world.width / 2), y: Math.floor(world.height / 2) };
   if (event.key === 'ArrowLeft') cursor.x = Math.max(0, cursor.x - 1);
   if (event.key === 'ArrowRight') cursor.x = Math.min(world.width - 1, cursor.x + 1);
@@ -258,8 +279,33 @@ function download(data, filename, type) {
 
 $('export-json').addEventListener('click', () => download(JSON.stringify(world.snapshot(), null, 2), `world-g${world.generation}.json`, 'application/json'));
 $('export-image').addEventListener('click', () => {
+  const image = document.createElement('canvas');
+  const imageWidth = Math.max(600, canvas.width);
+  const gridHeight = Math.round(imageWidth * world.height / world.width);
+  const showAge = $('color-mode').value === 'age';
+  image.width = imageWidth;
+  image.height = gridHeight + (showAge ? 140 : 56);
+  const paint = image.getContext('2d');
+  paint.fillStyle = '#101c20';
+  paint.fillRect(0, 0, image.width, image.height);
+  paint.imageSmoothingEnabled = false;
+  paint.drawImage(canvas, 0, 0, imageWidth, gridHeight);
+  paint.fillStyle = '#ffffff';
+  paint.font = '16px sans-serif';
+  paint.fillText(`${world.rule.name} | Generation ${world.generation} | ${world.boundary === 'wrap' ? 'Wrapping' : 'Empty edges'} | Noise ${world.noise * 100}%`, 16, gridHeight + 30);
+  if (showAge) {
+    ageScale.forEach((stop, i) => {
+      const x = 16 + i * (imageWidth - 32) / ageScale.length;
+      paint.fillStyle = stop.color;
+      paint.fillRect(x, gridHeight + 46, 22, 18);
+      paint.fillStyle = '#ffffff';
+      paint.fillText(`${stop.age}${i === ageScale.length - 1 ? '+' : ''}`, x + 28, gridHeight + 61);
+    });
+    paint.fillText('Cell age: consecutive living steps. Death resets age.', 16, gridHeight + 93);
+    if (world.ageStartGeneration > 0) paint.fillText(`Age history starts at generation ${world.ageStartGeneration}.`, 16, gridHeight + 119);
+  }
   const anchor = document.createElement('a');
-  anchor.href = canvas.toDataURL('image/png');
+  anchor.href = image.toDataURL('image/png');
   anchor.download = `${world.rule.name.replace('/', '-')}-g${world.generation}.png`;
   anchor.click();
 });
@@ -268,7 +314,7 @@ $('snapshot-file').addEventListener('change', async () => {
   const file = $('snapshot-file').files[0];
   if (!file) return;
   try {
-    if (file.size > 200000) throw new Error('Snapshot is too large (maximum 200 KB).');
+    if (file.size > 2000000) throw new Error('Snapshot is too large (maximum 2 MB).');
     setWorld(Automaton.fromSnapshot(JSON.parse(await file.text())), 'Snapshot loaded. Its random state is preserved for exact continuation.');
   } catch (error) { notice(error.message); }
   $('snapshot-file').value = '';
@@ -285,10 +331,21 @@ function frame(time) {
   requestAnimationFrame(frame);
 }
 
+for (const [i, stop] of ageScale.entries()) {
+  const item = document.createElement('span');
+  const swatch = document.createElement('span');
+  swatch.className = 'age-swatch';
+  swatch.style.backgroundColor = stop.color;
+  swatch.setAttribute('aria-hidden', 'true');
+  item.append(swatch, `${stop.age}${i === ageScale.length - 1 ? '+' : ''}`);
+  $('age-key').append(item);
+}
+
 try {
   const replay = worldFromQuery(location.search);
   $('seed').value = replay.seed;
   $('density').value = Math.round(replay.density * 100);
+  $('start-area').value = replay.start;
   $('density-value').textContent = `${$('density').value}%`;
   setWorld(replay.world);
   if (replay.steps) step(replay.steps);
@@ -308,7 +365,7 @@ if (document.modelContext?.registerTool) {
       annotations: { readOnlyHint: true, untrustedContentHint: false },
       execute(input) {
         if (!input || typeof input !== 'object' || Object.keys(input).length) throw new Error('No arguments are accepted.');
-        return { rule: world.rule.name, width: world.width, height: world.height, generation: world.generation, population: world.population, boundary: world.boundary, noise: world.noise, running };
+        return { rule: world.rule.name, width: world.width, height: world.height, generation: world.generation, population: world.population, boundary: world.boundary, noise: world.noise, colorMode: $('color-mode').value, ageStartGeneration: world.ageStartGeneration, running };
       }
     },
     {
